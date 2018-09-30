@@ -1,37 +1,37 @@
+import os
 from strutils import toHex
 
 proc disassemble(path: string): seq[int] =
   ## Disassembles Chip-8 binaries
   ## Possibly other types of binaries that follows similar formatting
   var
-    ch = 0 
+    byte = 0 # value of each byte stored here
     i = 0 # will be used to keep track of high and low bytes
-    tmp: int
+    tmp: int # stores high and low bytes
     f: File
-    opcodes: seq[int] = @[]
+    opcodes: seq[int] = @[] # each opcode stored here
 
   try: # return empty seq if file cannot be opened
     f = open(path)
   except:
     return opcodes
 
-  while true: # read characters until we no longer can
+  while true: # read characters until eof
     try:
-      ch = int(readChar(f))
+      byte = int(readChar(f))
+
     except:
-      break
+      return opcodes
 
     if i mod 2 == 0:
       tmp = 0 # reset the bytes
-      tmp = tmp or (ch shl 8) # place value in high byte
+      tmp = tmp or (byte shl 8) # place value in high byte
 
     else:
-      tmp = tmp or ch # place value in low byte
+      tmp = tmp or byte # place value in low byte
       opcodes.add(tmp) # append result to opcodes
 
     i = (i + 1) mod 2 # add 1 to Z2
-
-  return opcodes # return opcodes
 
 proc decode(opcode: int): string =
   ## Takes a Chip-8 opcode and returns the disassembled instruction
@@ -139,7 +139,15 @@ proc decode(opcode: int): string =
     else:
       "INVALID"
 
-for i, opcode in disassemble("breakout.ch8"):
-  #echo toHex(opcode, 4), " ", decode(opcode)
-  echo toHex(i+0x200, 3) & "\t" & toHex(opcode, 4), "\t", decode(opcode)
+when isMainModule:
+  if paramCount() < 1:
+    quit "Please provide a file to disassemble."
+
+  var 
+    filepath = paramStr(1)
+    address: string
+
+  for i, opcode in disassemble(filepath):
+    address = toHex(i + 0x200, 3) # Chip-8 programs usually start at 0x200
+    echo address & "\t" & toHex(opcode, 4), "\t", decode(opcode)
 
